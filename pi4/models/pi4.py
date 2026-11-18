@@ -54,10 +54,6 @@ class Pi4(nn.Module):
         batch_size, frames, _, height, width = images.shape
         if min(batch_size, frames, height, width) < 1 or height % 16 or width % 16:
             raise ValueError("image dimensions must be positive multiples of 16")
-        if images.device.type != "cuda":
-            raise ValueError(
-                "Pi4 inference requires CUDA for sparse geometry refinement"
-            )
         queries = None
         if query_frame is not None:
             if frames < 2:
@@ -83,14 +79,14 @@ class Pi4(nn.Module):
         positions = patch_positions(
             batch_size * frames, height // 16, width // 16, images.device
         )
-        with torch.autocast("cuda", dtype=torch.bfloat16):
+        with torch.autocast(images.device.type, dtype=torch.bfloat16):
             tokens = self.encoder(normalized.flatten(0, 1))
             geometry, initial = self.geometry_decoder(
                 tokens, positions, batch_size, frames
             )
         del tokens
         points, confidences = [], []
-        with torch.autocast("cuda", enabled=False):
+        with torch.autocast(images.device.type, enabled=False):
             for frame_tokens in geometry[:, 5:].split(1):
                 rays, log_depth, confidence, feature = self.point_head(
                     frame_tokens, height, width
@@ -119,7 +115,7 @@ class Pi4(nn.Module):
         )
         del confidence_logits
         if queries is not None:
-            with torch.autocast("cuda", dtype=torch.bfloat16):
+            with torch.autocast(images.device.type, dtype=torch.bfloat16):
                 motion = self.motion_decoder(
                     initial, geometry, positions, batch_size, frames
                 )[:, 5:]

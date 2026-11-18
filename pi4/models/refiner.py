@@ -1,7 +1,11 @@
 import torch
 from torch import nn
 from torch.nn import functional as F
-from flex_gemm.nn import SparsePool3d, SparseUpsample3d, SubmanifoldConv3d
+
+try:
+    from flex_gemm.nn import SparsePool3d, SparseUpsample3d, SubmanifoldConv3d
+except ImportError:  # no CUDA build: the portable equivalents
+    from .sparse import SparsePool3d, SparseUpsample3d, SubmanifoldConv3d
 
 
 class SparseResidual(nn.Module):

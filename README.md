@@ -1,3 +1,28 @@
+# Pi4 on Apple silicon (MLX)
+
+A fork of [yyfz/Pi4](https://github.com/yyfz/Pi4) that runs Pi4's geometry on a Mac.
+
+**What changed**
+- `pi4/mlx/`: Pi4 geometry (points, confidence, cameras, metric scale) ported to MLX. It loads the original checkpoint.
+- `pi4/models/sparse.py`: plain-PyTorch stand-ins for the three CUDA-only FlexGEMM layers, so the PyTorch model also
+  runs without CUDA.
+- Tracking and motion masks are not ported.
+
+**Checked**: against the PyTorch model in fp32, camera poses match to 1e-6, metric scale to 1e-5, depth to a median of
+0.03 % (`tests/`). On an M2 Pro: ~1.2 s per frame at 512x384.
+
+```python
+import mlx.core as mx
+from pi4.mlx import Pi4
+
+model = Pi4.from_pretrained("yyfz233/Pi4", dtype=mx.float32, refiner_dtype=mx.float16)
+out = model(images)  # images: [B, T, H, W, 3] in [0, 1], H and W multiples of 16
+```
+
+Install: `pip install -e ".[mlx]"`. Licence unchanged (CC BY-NC 4.0).
+
+---
+
 <div align="center">
 
 <h2>🌌 π⁴: A Foundation Model for 4D Scene Geometry and Motion</h2>
